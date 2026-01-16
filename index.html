@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kiadás 2026 - Admin</title>
+    <title>Kiadás 2026 - Jelszavas</title>
     <style>
         :root { --bg: #000; --card: #1c1c1e; --accent: #0a84ff; --text: #fff; --gray: #8e8e93; --red: #ff453a; --success: #30d158; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; font-size: 14px; }
@@ -84,7 +84,6 @@
 </div></div>
 
 <script>
-    // PONTOS KONFIGURÁCIÓ
     const DB_URL = "https://kiadaskoveto-2e474-default-rtdb.firebaseio.com/";
     
     let currentUser = JSON.parse(localStorage.getItem('kiadas_session'));
@@ -94,21 +93,30 @@
     async function handleLogin() {
         const u = document.getElementById('login-user').value.trim();
         const p = document.getElementById('login-pass').value.trim();
-        if(!u) return;
+        if(!u || !p) {
+            alert("Kérlek töltsd ki mindkét mezőt!");
+            return;
+        }
         
         showLoading(true);
         try {
             const res = await fetch(`${DB_URL}users_auth/${u}.json`);
-            const storedPassword = await res.json();
+            let storedPassword = await res.json();
             
-            if(!storedPassword) {
-                alert("Nincs ilyen nevű felhasználó!");
-            } else if(String(storedPassword) !== String(p)) {
-                alert("Hibás jelszó!");
+            if (storedPassword !== null) {
+                if (typeof storedPassword === 'string') {
+                    storedPassword = storedPassword.replace(/^"|"$/g, '');
+                }
+                
+                if(String(storedPassword) === String(p)) {
+                    currentUser = { name: u, isAdmin: (u.toLowerCase() === 'jani') };
+                    localStorage.setItem('kiadas_session', JSON.stringify(currentUser));
+                    initApp();
+                } else {
+                    alert("Hibás felhasználónév vagy jelszó!");
+                }
             } else {
-                currentUser = { name: u, isAdmin: true };
-                localStorage.setItem('kiadas_session', JSON.stringify(currentUser));
-                initApp();
+                alert("Nincs ilyen felhasználó!");
             }
         } catch (e) {
             alert("Hálózati hiba!");
@@ -135,7 +143,10 @@
     async function addUser() {
         const name = document.getElementById('new-user-name').value.trim();
         const pass = document.getElementById('new-user-pass').value.trim();
-        if(!name || !pass) return;
+        if(!name || !pass) {
+            alert("Adj meg nevet és jelszót is!");
+            return;
+        }
         showLoading(true);
         await fetch(`${DB_URL}users_auth/${name}.json`, { method: 'PUT', body: JSON.stringify(pass) });
         alert(name + " létrehozva!");
