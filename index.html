@@ -3,42 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kiadás 2026</title>
+    <title>Kiadás 2026 - Admin</title>
     <style>
         :root { --bg: #000; --card: #1c1c1e; --accent: #0a84ff; --text: #fff; --gray: #8e8e93; --red: #ff453a; --success: #30d158; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; font-size: 14px; }
-        
+        #login-screen { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+        .login-box { width: 100%; max-width: 300px; }
         .header { text-align: center; padding: 10px; margin-bottom: 15px; }
-        .total-label { font-size: 11px; color: var(--gray); text-transform: uppercase; }
-        .total-val { font-size: 26px; font-weight: bold; display: block; }
-
-        .input-box { background: var(--card); padding: 15px; border-radius: 20px; border: 1px solid #2c2c2e; }
-        input { width: 100%; background: #2c2c2e; border: 1px solid #444; padding: 12px; border-radius: 12px; color: #fff; font-size: 18px; text-align: right; box-sizing: border-box; }
-        
-        .main-btn { width: 100%; background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-
+        .total-val { font-size: 26px; font-weight: bold; }
+        .input-box { background: var(--card); padding: 15px; border-radius: 20px; border: 1px solid #2c2c2e; margin-bottom: 10px; }
+        input { width: 100%; background: #2c2c2e; border: 1px solid #444; padding: 12px; border-radius: 12px; color: #fff; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
+        .main-btn { width: 100%; background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        #admin-panel-btn { background: #5856d6; display: none; margin-top: 20px; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; overflow-y: auto; }
         .modal-content { padding: 20px; max-width: 500px; margin: auto; }
         .close-btn { color: var(--accent); float: right; font-weight: bold; padding: 10px; }
-
-        /* Naptár */
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
-        .nav-btn { background: #2c2c2e; border: none; color: white; padding: 8px 15px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { color: var(--gray); font-size: 10px; padding-bottom: 10px; }
-        td { text-align: center; padding: 8px 0; font-size: 13px; border: 1px solid #111; height: 35px; }
-        .week-num { color: var(--accent); font-weight: bold; background: #111; width: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        td { text-align: center; padding: 8px; border: 1px solid #111; height: 35px; }
         .has-expense::after { content: '✓'; display: block; font-size: 10px; color: var(--success); }
-
-        /* Lista és Törlés */
         .detail-row { background: #1c1c1e; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--accent); }
-        .del-btn { background: none; border: none; color: var(--red); font-size: 18px; padding: 10px; cursor: pointer; }
+        #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 3000; display: none; align-items: center; justify-content: center; color: white; }
     </style>
 </head>
 <body>
 
+<div id="loading-overlay">Szinkronizálás...</div>
+
+<div id="login-screen">
+    <h2 id="login-title">Belépés</h2>
+    <div class="login-box">
+        <input type="text" id="login-user" placeholder="Felhasználónév">
+        <input type="password" id="login-pass" placeholder="Jelszó">
+        <button class="main-btn" onclick="handleLogin()">BELÉPÉS</button>
+    </div>
+</div>
+
+<div id="app-content" style="display:none;">
     <div class="header">
-        <span class="total-label">Összes kiadás (Mind)</span>
+        <small id="welcome-msg" style="color:var(--gray)"></small>
         <span class="total-val" id="main-total">0 Ft</span>
     </div>
 
@@ -46,165 +48,195 @@
         <input type="text" id="amount-input" placeholder="0 Ft" oninput="formatAmount(this)" inputmode="numeric">
         <button class="main-btn" onclick="openMemo()">MENTÉS</button>
         <button class="main-btn" style="background:#1c1c1e; border:1px solid #333;" onclick="openCalendar()">ÖSSZESÍTŐ</button>
+        <button id="admin-panel-btn" class="main-btn" onclick="openAdmin()">+ ÚJ FELHASZNÁLÓ</button>
+        <button class="main-btn" style="background:none; color:var(--red); font-size:12px;" onclick="logout()">Kijelentkezés</button>
     </div>
+</div>
 
-    <div id="memo-modal" class="modal">
-        <div class="modal-content">
-            <h3>Megjegyzés</h3>
-            <input type="text" id="memo-input" placeholder="Pl. Spar" style="text-align:left;">
-            <button class="main-btn" onclick="saveFinal()">RÖGZÍTÉS</button>
-            <button class="main-btn" style="background:none" onclick="closeModal('memo-modal')">Mégse</button>
-        </div>
+<div id="memo-modal" class="modal"><div class="modal-content">
+    <h3>Megjegyzés</h3>
+    <input type="text" id="memo-input" placeholder="Pl. Spar">
+    <button class="main-btn" onclick="saveFinal()">RÖGZÍTÉS</button>
+    <button class="main-btn" style="background:none" onclick="closeModal('memo-modal')">Mégse</button>
+</div></div>
+
+<div id="admin-modal" class="modal"><div class="modal-content">
+    <span class="close-btn" onclick="closeModal('admin-modal')">BEZÁR</span>
+    <h3>Új felhasználó</h3>
+    <input type="text" id="new-user-name" placeholder="Név">
+    <input type="text" id="new-user-pass" placeholder="Jelszó">
+    <button class="main-btn" onclick="addUser()">LÉTREHOZÁS</button>
+</div></div>
+
+<div id="calendar-modal" class="modal"><div class="modal-content">
+    <span class="close-btn" onclick="closeModal('calendar-modal')">BEZÁR</span>
+    <div id="month-name" style="font-size:20px; font-weight:bold; margin-bottom:10px;"></div>
+    <div id="calendar-container"></div>
+    <div style="margin-top:20px; text-align:center;">
+        <div id="monthly-total" style="font-size:22px; font-weight:bold;">0 Ft</div>
+        <button class="main-btn" onclick="openDetails()">Részletek</button>
     </div>
+</div></div>
 
-    <div id="calendar-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('calendar-modal')">BEZÁR</span>
-            <div id="year-display" style="color:var(--gray)">2026</div>
-            <div class="calendar-header">
-                <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
-                <h2 id="month-name" style="margin:0">Január</h2>
-                <button class="nav-btn" onclick="changeMonth(1)">▶</button>
-            </div>
-            <table>
-                <thead><tr><th style="width:30px">Hét</th><th>H</th><th>K</th><th>Sze</th><th>Cs</th><th>P</th><th>Szo</th><th>V</th></tr></thead>
-                <tbody id="calendar-body"></tbody>
-            </table>
-            <div style="margin-top: 20px; padding: 15px; background: #1c1c1e; border-radius: 15px; text-align: center;">
-                <small style="color:var(--gray)">HAVI KIADÁS:</small>
-                <div id="monthly-total" style="font-size: 22px; font-weight: bold; margin: 5px 0;">0 Ft</div>
-                <button class="main-btn" onclick="openDetails()">Részletek</button>
-            </div>
-        </div>
-    </div>
+<div id="details-modal" class="modal"><div class="modal-content">
+    <span class="close-btn" onclick="closeModal('details-modal')">VISSZA</span>
+    <div id="details-list"></div>
+</div></div>
 
-    <div id="details-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('details-modal')">VISSZA</span>
-            <h3 id="details-title">Részletek</h3>
-            <div id="details-list"></div>
-        </div>
-    </div>
+<script>
+    // JAVÍTOTT URL
+    const DB_URL = "https://kiadaskoveto-2e474-default-rtdb.firebaseio.com/";
+    
+    let currentUser = JSON.parse(localStorage.getItem('kiadas_session'));
+    let expenses = [];
+    let currentViewDate = new Date();
 
-    <script>
-        let expenses = JSON.parse(localStorage.getItem('kiadasok_v2')) || [];
-        let currentViewDate = new Date();
-
-        function formatAmount(input) {
-            let val = input.value.replace(/\D/g, "");
-            input.value = val ? parseInt(val).toLocaleString('hu-HU') + " Ft" : "";
-        }
-
-        function openMemo() {
-            if(!document.getElementById('amount-input').value) return;
-            document.getElementById('memo-modal').style.display = 'block';
-        }
-
-        function saveFinal() {
-            const amtStr = document.getElementById('amount-input').value.replace(/\D/g, "");
-            const memo = document.getElementById('memo-input').value || "Nincs megjegyzés";
-            const now = new Date();
+    // JAVÍTOTT LOGIN LOGIKA
+    async function handleLogin() {
+        const u = document.getElementById('login-user').value.trim();
+        const p = document.getElementById('login-pass').value;
+        if(!u) return;
+        
+        showLoading(true);
+        try {
+            const res = await fetch(`${DB_URL}users_auth/${u}.json`);
+            const storedPassword = await res.json();
             
-            expenses.push({
-                id: Date.now(),
-                amt: parseInt(amtStr),
-                memo: memo,
-                dDay: now.getDate(),
-                dMonth: now.getMonth(),
-                dYear: now.getFullYear()
-            });
-
-            syncData();
-            closeModal('memo-modal');
-            document.getElementById('amount-input').value = "";
-            document.getElementById('memo-input').value = "";
-        }
-
-        function deleteExpense(id) {
-            if(confirm("Biztosan törlöd ezt a kiadást?")) {
-                expenses = expenses.filter(e => e.id !== id);
-                syncData();
-                openDetails(); // Lista frissítése a törlés után
-                if(document.getElementById('calendar-modal').style.display === 'block') renderCalendar();
+            if(!storedPassword) {
+                alert("Nincs ilyen nevű felhasználó!");
+            } else if(storedPassword !== p) {
+                alert("Hibás jelszó!");
+            } else {
+                // Sikeres belépés
+                currentUser = { name: u, isAdmin: true };
+                localStorage.setItem('kiadas_session', JSON.stringify(currentUser));
+                initApp();
             }
+        } catch (e) {
+            alert("Hiba a csatlakozáskor!");
         }
+        showLoading(false);
+    }
 
-        function syncData() {
-            localStorage.setItem('kiadasok_v2', JSON.stringify(expenses));
-            updateMainTotal();
+    function initApp() {
+        if(!currentUser) return;
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        document.getElementById('welcome-msg').innerText = currentUser.name.toUpperCase() + " SAJÁT FÜZETE";
+        if(currentUser.isAdmin) document.getElementById('admin-panel-btn').style.display = 'block';
+        loadData();
+    }
+
+    async function loadData() {
+        const res = await fetch(`${DB_URL}expenses/${currentUser.name}.json`);
+        const data = await res.json();
+        expenses = data ? Object.keys(data).map(k => ({...data[k], fbKey: k})) : [];
+        document.getElementById('main-total').innerText = expenses.reduce((s, i) => s + i.amt, 0).toLocaleString('hu-HU') + " Ft";
+    }
+
+    async function addUser() {
+        const name = document.getElementById('new-user-name').value.trim();
+        const pass = document.getElementById('new-user-pass').value.trim();
+        if(!name || !pass) return;
+        showLoading(true);
+        await fetch(`${DB_URL}users_auth/${name}.json`, { method: 'PUT', body: JSON.stringify(pass) });
+        alert(name + " létrehozva!");
+        closeModal('admin-modal');
+        showLoading(false);
+    }
+
+    async function saveFinal() {
+        const amtStr = document.getElementById('amount-input').value.replace(/\D/g, "");
+        if(!amtStr) return;
+        const amt = parseInt(amtStr);
+        const memo = document.getElementById('memo-input').value || "Nincs megjegyzés";
+        const now = new Date();
+        const item = { amt, memo, dDay: now.getDate(), dMonth: now.getMonth(), dYear: now.getFullYear(), date: now.toISOString() };
+        
+        showLoading(true);
+        await fetch(`${DB_URL}expenses/${currentUser.name}.json`, { method: 'POST', body: JSON.stringify(item) });
+        document.getElementById('amount-input').value = "";
+        document.getElementById('memo-input').value = "";
+        closeModal('memo-modal');
+        await loadData();
+        showLoading(false);
+    }
+
+    function formatAmount(i) { let v = i.value.replace(/\D/g, ""); i.value = v ? parseInt(v).toLocaleString('hu-HU') + " Ft" : ""; }
+    function openMemo() { document.getElementById('memo-modal').style.display = 'block'; }
+    function openAdmin() { document.getElementById('admin-modal').style.display = 'block'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function showLoading(s) { document.getElementById('loading-overlay').style.display = s ? 'flex' : 'none'; }
+    function logout() { localStorage.removeItem('kiadas_session'); location.reload(); }
+    
+    function openCalendar() { 
+        document.getElementById('calendar-modal').style.display = 'block'; 
+        renderCalendar(); 
+    }
+    
+    function renderCalendar() {
+        const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
+        const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+        document.getElementById('month-name').innerText = months[month] + " " + year;
+        
+        let firstDay = new Date(year, month, 1).getDay();
+        if (firstDay === 0) firstDay = 7;
+        
+        let dayCount = new Date(year, month + 1, 0).getDate();
+        let html = '<table><thead><tr><th>H</th><th>K</th><th>Sze</th><th>Cs</th><th>P</th><th>Szo</th><th>V</th></tr></thead><tbody><tr>';
+        
+        for (let i = 1; i < firstDay; i++) html += '<td></td>';
+        
+        for (let day = 1; day <= dayCount; day++) {
+            if ((day + firstDay - 2) % 7 === 0 && day !== 1) html += '</tr><tr>';
+            const hasExp = expenses.some(e => e.dDay === day && e.dMonth === month && e.dYear === year);
+            html += `<td class="${hasExp ? 'has-expense' : ''}">${day}</td>`;
         }
+        
+        html += '</tr></tbody></table>';
+        document.getElementById('calendar-container').innerHTML = html;
+        
+        const mTotal = expenses.filter(e => e.dMonth === month && e.dYear === year).reduce((s, i) => s + i.amt, 0);
+        document.getElementById('monthly-total').innerText = mTotal.toLocaleString('hu-HU') + " Ft";
+    }
 
-        function updateMainTotal() {
-            const total = expenses.reduce((sum, item) => sum + item.amt, 0);
-            document.getElementById('main-total').innerText = total.toLocaleString('hu-HU') + " Ft";
-        }
-
-        function openCalendar() {
-            document.getElementById('calendar-modal').style.display = 'block';
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
-            const year = currentViewDate.getFullYear();
-            const month = currentViewDate.getMonth();
-            document.getElementById('month-name').innerText = months[month];
-            document.getElementById('year-display').innerText = year;
-
-            const firstDay = new Date(year, month, 1);
-            const startingDay = firstDay.getDay() || 7;
-            const dayCount = new Date(year, month + 1, 0).getDate();
-            
-            let html = '', day = 1;
-            for (let i = 0; i < 6; i++) {
-                html += `<tr><td class="week-num">${getWeekNumber(new Date(year, month, day))}</td>`;
-                for (let j = 1; j <= 7; j++) {
-                    if (i === 0 && j < startingDay || day > dayCount) html += `<td></td>`;
-                    else {
-                        const hasExp = expenses.some(e => e.dDay === day && e.dMonth === month && e.dYear === year);
-                        html += `<td class="${hasExp ? 'has-expense' : ''}">${day}</td>`;
-                        day++;
-                    }
-                }
-                html += `</tr>`;
-                if (day > dayCount) break;
-            }
-            document.getElementById('calendar-body').innerHTML = html;
-            
-            const mTotal = expenses.filter(e => e.dMonth === month && e.dYear === year).reduce((s, i) => s + i.amt, 0);
-            document.getElementById('monthly-total').innerText = mTotal.toLocaleString('hu-HU') + " Ft";
-        }
-
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7);
-        }
-
-        function changeMonth(s) { currentViewDate.setMonth(currentViewDate.getMonth() + s); renderCalendar(); }
-
-        function openDetails() {
-            const month = currentViewDate.getMonth();
-            const year = currentViewDate.getFullYear();
-            const listDiv = document.getElementById('details-list');
-            listDiv.innerHTML = "";
-            
-            expenses.filter(e => e.dMonth === month && e.dYear === year).reverse().forEach(item => {
+    function openDetails() {
+        const listDiv = document.getElementById('details-list'); 
+        listDiv.innerHTML = "";
+        const filtered = expenses.filter(e => e.dMonth === currentViewDate.getMonth() && e.dYear === currentViewDate.getFullYear()).reverse();
+        
+        if(filtered.length === 0) {
+            listDiv.innerHTML = "<p style='text-align:center'>Nincs adat.</p>";
+        } else {
+            filtered.forEach(item => {
                 listDiv.innerHTML += `
-                    <div class="detail-row">
-                        <div>
-                            <small style="color:var(--gray)">${item.dYear}.${(item.dMonth+1)}.${item.dDay}.</small><br>
-                            <strong>${item.memo}</strong>: ${item.amt.toLocaleString('hu-HU')} Ft
-                        </div>
-                        <button class="del-btn" onclick="deleteExpense(${item.id})">🗑</button>
+                <div class="detail-row">
+                    <div>
+                        <small>${item.dYear}.${item.dMonth+1}.${item.dDay}.</small><br>
+                        <strong>${item.memo}</strong>
                     </div>
-                `;
+                    <div>
+                        ${item.amt.toLocaleString('hu-HU')} Ft 
+                        <button style="background:none; border:none; color:var(--red); margin-left:10px;" onclick="deleteExp('${item.fbKey}')">🗑</button>
+                    </div>
+                </div>`;
             });
-            document.getElementById('details-modal').style.display = 'block';
         }
+        document.getElementById('details-modal').style.display = 'block';
+    }
 
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        updateMainTotal();
-    </script>
+    async function deleteExp(k) { 
+        if(confirm("Biztosan törlöd?")) { 
+            showLoading(true); 
+            await fetch(`${DB_URL}expenses/${currentUser.name}/${k}.json`, {method:'DELETE'}); 
+            await loadData(); 
+            openDetails(); 
+            renderCalendar(); 
+            showLoading(false); 
+        } 
+    }
+
+    if(currentUser) initApp();
+</script>
 </body>
 </html>
