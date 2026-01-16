@@ -84,17 +84,16 @@
 </div></div>
 
 <script>
-    // JAVÍTOTT URL
+    // PONTOS KONFIGURÁCIÓ
     const DB_URL = "https://kiadaskoveto-2e474-default-rtdb.firebaseio.com/";
     
     let currentUser = JSON.parse(localStorage.getItem('kiadas_session'));
     let expenses = [];
     let currentViewDate = new Date();
 
-    // JAVÍTOTT LOGIN LOGIKA
     async function handleLogin() {
         const u = document.getElementById('login-user').value.trim();
-        const p = document.getElementById('login-pass').value;
+        const p = document.getElementById('login-pass').value.trim();
         if(!u) return;
         
         showLoading(true);
@@ -104,16 +103,15 @@
             
             if(!storedPassword) {
                 alert("Nincs ilyen nevű felhasználó!");
-            } else if(storedPassword !== p) {
+            } else if(String(storedPassword) !== String(p)) {
                 alert("Hibás jelszó!");
             } else {
-                // Sikeres belépés
                 currentUser = { name: u, isAdmin: true };
                 localStorage.setItem('kiadas_session', JSON.stringify(currentUser));
                 initApp();
             }
         } catch (e) {
-            alert("Hiba a csatlakozáskor!");
+            alert("Hálózati hiba!");
         }
         showLoading(false);
     }
@@ -178,24 +176,18 @@
         const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
         const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
         document.getElementById('month-name').innerText = months[month] + " " + year;
-        
         let firstDay = new Date(year, month, 1).getDay();
         if (firstDay === 0) firstDay = 7;
-        
         let dayCount = new Date(year, month + 1, 0).getDate();
         let html = '<table><thead><tr><th>H</th><th>K</th><th>Sze</th><th>Cs</th><th>P</th><th>Szo</th><th>V</th></tr></thead><tbody><tr>';
-        
         for (let i = 1; i < firstDay; i++) html += '<td></td>';
-        
         for (let day = 1; day <= dayCount; day++) {
             if ((day + firstDay - 2) % 7 === 0 && day !== 1) html += '</tr><tr>';
             const hasExp = expenses.some(e => e.dDay === day && e.dMonth === month && e.dYear === year);
             html += `<td class="${hasExp ? 'has-expense' : ''}">${day}</td>`;
         }
-        
         html += '</tr></tbody></table>';
         document.getElementById('calendar-container').innerHTML = html;
-        
         const mTotal = expenses.filter(e => e.dMonth === month && e.dYear === year).reduce((s, i) => s + i.amt, 0);
         document.getElementById('monthly-total').innerText = mTotal.toLocaleString('hu-HU') + " Ft";
     }
@@ -204,37 +196,16 @@
         const listDiv = document.getElementById('details-list'); 
         listDiv.innerHTML = "";
         const filtered = expenses.filter(e => e.dMonth === currentViewDate.getMonth() && e.dYear === currentViewDate.getFullYear()).reverse();
-        
-        if(filtered.length === 0) {
-            listDiv.innerHTML = "<p style='text-align:center'>Nincs adat.</p>";
-        } else {
+        if(filtered.length === 0) { listDiv.innerHTML = "<p style='text-align:center'>Nincs adat.</p>"; }
+        else {
             filtered.forEach(item => {
-                listDiv.innerHTML += `
-                <div class="detail-row">
-                    <div>
-                        <small>${item.dYear}.${item.dMonth+1}.${item.dDay}.</small><br>
-                        <strong>${item.memo}</strong>
-                    </div>
-                    <div>
-                        ${item.amt.toLocaleString('hu-HU')} Ft 
-                        <button style="background:none; border:none; color:var(--red); margin-left:10px;" onclick="deleteExp('${item.fbKey}')">🗑</button>
-                    </div>
-                </div>`;
+                listDiv.innerHTML += `<div class="detail-row"><div><small>${item.dYear}.${item.dMonth+1}.${item.dDay}.</small><br><strong>${item.memo}</strong></div><div>${item.amt.toLocaleString('hu-HU')} Ft <button style="background:none; border:none; color:var(--red); margin-left:10px;" onclick="deleteExp('${item.fbKey}')">🗑</button></div></div>`;
             });
         }
         document.getElementById('details-modal').style.display = 'block';
     }
 
-    async function deleteExp(k) { 
-        if(confirm("Biztosan törlöd?")) { 
-            showLoading(true); 
-            await fetch(`${DB_URL}expenses/${currentUser.name}/${k}.json`, {method:'DELETE'}); 
-            await loadData(); 
-            openDetails(); 
-            renderCalendar(); 
-            showLoading(false); 
-        } 
-    }
+    async function deleteExp(k) { if(confirm("Törlöd?")) { showLoading(true); await fetch(`${DB_URL}expenses/${currentUser.name}/${k}.json`, {method:'DELETE'}); await loadData(); openDetails(); renderCalendar(); showLoading(false); } }
 
     if(currentUser) initApp();
 </script>
