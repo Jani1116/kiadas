@@ -5,41 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kiadás 2026</title>
     <style>
-        :root { --bg: #000; --card: #1c1c1e; --accent: #0a84ff; --text: #fff; --gray: #8e8e93; --success: #30d158; }
+        :root { --bg: #000; --card: #1c1c1e; --accent: #0a84ff; --text: #fff; --gray: #8e8e93; --red: #ff453a; --success: #30d158; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; font-size: 14px; }
         
         .header { text-align: center; padding: 10px; margin-bottom: 15px; }
         .total-label { font-size: 11px; color: var(--gray); text-transform: uppercase; }
-        .total-val { font-size: 24px; font-weight: bold; display: block; }
+        .total-val { font-size: 26px; font-weight: bold; display: block; }
 
         .input-box { background: var(--card); padding: 15px; border-radius: 20px; border: 1px solid #2c2c2e; }
         input { width: 100%; background: #2c2c2e; border: 1px solid #444; padding: 12px; border-radius: 12px; color: #fff; font-size: 18px; text-align: right; box-sizing: border-box; }
         
-        .main-btn { width: 100%; background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: bold; margin-top: 12px; cursor: pointer; }
+        .main-btn { width: 100%; background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; overflow-y: auto; }
         .modal-content { padding: 20px; max-width: 500px; margin: auto; }
         .close-btn { color: var(--accent); float: right; font-weight: bold; padding: 10px; }
 
-        /* Naptár stílus */
+        /* Naptár */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
         .nav-btn { background: #2c2c2e; border: none; color: white; padding: 8px 15px; border-radius: 8px; }
-        
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { color: var(--gray); font-size: 10px; padding-bottom: 10px; text-align: center; }
-        td { text-align: center; padding: 8px 0; font-size: 13px; position: relative; height: 35px; border: 1px solid #111; }
+        th { color: var(--gray); font-size: 10px; padding-bottom: 10px; }
+        td { text-align: center; padding: 8px 0; font-size: 13px; border: 1px solid #111; height: 35px; }
         .week-num { color: var(--accent); font-weight: bold; background: #111; width: 30px; }
-        .has-expense { color: var(--success); font-weight: bold; }
-        .has-expense::after { content: '✓'; display: block; font-size: 10px; margin-top: -2px; }
-        .today { background: rgba(10, 132, 255, 0.2); border-radius: 5px; }
+        .has-expense::after { content: '✓'; display: block; font-size: 10px; color: var(--success); }
 
-        .detail-row { background: #1c1c1e; padding: 12px; border-radius: 10px; margin-bottom: 8px; border-left: 3px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
+        /* Lista és Törlés */
+        .detail-row { background: #1c1c1e; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--accent); }
+        .del-btn { background: none; border: none; color: var(--red); font-size: 18px; padding: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <span class="total-label">Összes kiadás</span>
+        <span class="total-label">Összes kiadás (Mind)</span>
         <span class="total-val" id="main-total">0 Ft</span>
     </div>
 
@@ -61,22 +60,18 @@
     <div id="calendar-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('calendar-modal')">BEZÁR</span>
-            <div id="year-display" style="font-size: 18px; color: var(--gray);">2026</div>
+            <div id="year-display" style="color:var(--gray)">2026</div>
             <div class="calendar-header">
                 <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
                 <h2 id="month-name" style="margin:0">Január</h2>
-                <button class="nav-btn" onclick="changeMonth(step=1)">▶</button>
+                <button class="nav-btn" onclick="changeMonth(1)">▶</button>
             </div>
-
             <table>
-                <thead>
-                    <tr><th style="width:30px">Hét</th><th>H</th><th>K</th><th>Sze</th><th>Cs</th><th>P</th><th>Szo</th><th>V</th></tr>
-                </thead>
+                <thead><tr><th style="width:30px">Hét</th><th>H</th><th>K</th><th>Sze</th><th>Cs</th><th>P</th><th>Szo</th><th>V</th></tr></thead>
                 <tbody id="calendar-body"></tbody>
             </table>
-
-            <div style="margin-top: 25px; padding: 15px; background: #1c1c1e; border-radius: 15px; text-align: center;">
-                <small style="color:var(--gray)">HAVI ÖSSZESEN:</small>
+            <div style="margin-top: 20px; padding: 15px; background: #1c1c1e; border-radius: 15px; text-align: center;">
+                <small style="color:var(--gray)">HAVI KIADÁS:</small>
                 <div id="monthly-total" style="font-size: 22px; font-weight: bold; margin: 5px 0;">0 Ft</div>
                 <button class="main-btn" onclick="openDetails()">Részletek</button>
             </div>
@@ -86,7 +81,7 @@
     <div id="details-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('details-modal')">VISSZA</span>
-            <h3 id="details-title">Januári kiadások</h3>
+            <h3 id="details-title">Részletek</h3>
             <div id="details-list"></div>
         </div>
     </div>
@@ -103,7 +98,6 @@
         function openMemo() {
             if(!document.getElementById('amount-input').value) return;
             document.getElementById('memo-modal').style.display = 'block';
-            document.getElementById('memo-input').focus();
         }
 
         function saveFinal() {
@@ -112,18 +106,31 @@
             const now = new Date();
             
             expenses.push({
+                id: Date.now(),
                 amt: parseInt(amtStr),
                 memo: memo,
-                date: now.toISOString(),
                 dDay: now.getDate(),
                 dMonth: now.getMonth(),
                 dYear: now.getFullYear()
             });
 
-            localStorage.setItem('kiadasok_v2', JSON.stringify(expenses));
+            syncData();
+            closeModal('memo-modal');
             document.getElementById('amount-input').value = "";
             document.getElementById('memo-input').value = "";
-            closeModal('memo-modal');
+        }
+
+        function deleteExpense(id) {
+            if(confirm("Biztosan törlöd ezt a kiadást?")) {
+                expenses = expenses.filter(e => e.id !== id);
+                syncData();
+                openDetails(); // Lista frissítése a törlés után
+                if(document.getElementById('calendar-modal').style.display === 'block') renderCalendar();
+            }
+        }
+
+        function syncData() {
+            localStorage.setItem('kiadasok_v2', JSON.stringify(expenses));
             updateMainTotal();
         }
 
@@ -137,80 +144,59 @@
             renderCalendar();
         }
 
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            let yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        }
-
         function renderCalendar() {
             const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
             const year = currentViewDate.getFullYear();
             const month = currentViewDate.getMonth();
-            
             document.getElementById('month-name').innerText = months[month];
             document.getElementById('year-display').innerText = year;
 
             const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
+            const startingDay = firstDay.getDay() || 7;
+            const dayCount = new Date(year, month + 1, 0).getDate();
             
-            let startingDay = firstDay.getDay() || 7; // Hétfő = 1
-            let dayCount = lastDay.getDate();
-            
-            let html = '';
-            let day = 1;
-            
-            for (let i = 0; i < 6; i++) { // Max 6 hét
-                let weekDate = new Date(year, month, day);
-                html += `<tr><td class="week-num">${getWeekNumber(weekDate)}</td>`;
-                
+            let html = '', day = 1;
+            for (let i = 0; i < 6; i++) {
+                html += `<tr><td class="week-num">${getWeekNumber(new Date(year, month, day))}</td>`;
                 for (let j = 1; j <= 7; j++) {
-                    if (i === 0 && j < startingDay || day > dayCount) {
-                        html += `<td></td>`;
-                    } else {
+                    if (i === 0 && j < startingDay || day > dayCount) html += `<td></td>`;
+                    else {
                         const hasExp = expenses.some(e => e.dDay === day && e.dMonth === month && e.dYear === year);
-                        const isToday = new Date().toLocaleDateString() === new Date(year, month, day).toLocaleDateString();
-                        html += `<td class="${hasExp ? 'has-expense' : ''} ${isToday ? 'today' : ''}">${day}</td>`;
+                        html += `<td class="${hasExp ? 'has-expense' : ''}">${day}</td>`;
                         day++;
                     }
                 }
                 html += `</tr>`;
                 if (day > dayCount) break;
             }
-            
             document.getElementById('calendar-body').innerHTML = html;
             
-            const monthlySum = expenses
-                .filter(e => e.dMonth === month && e.dYear === year)
-                .reduce((sum, item) => sum + item.amt, 0);
-            document.getElementById('monthly-total').innerText = monthlySum.toLocaleString('hu-HU') + " Ft";
+            const mTotal = expenses.filter(e => e.dMonth === month && e.dYear === year).reduce((s, i) => s + i.amt, 0);
+            document.getElementById('monthly-total').innerText = mTotal.toLocaleString('hu-HU') + " Ft";
         }
 
-        function changeMonth(step) {
-            currentViewDate.setMonth(currentViewDate.getMonth() + step);
-            renderCalendar();
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7);
         }
+
+        function changeMonth(s) { currentViewDate.setMonth(currentViewDate.getMonth() + s); renderCalendar(); }
 
         function openDetails() {
             const month = currentViewDate.getMonth();
             const year = currentViewDate.getFullYear();
-            const months = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
-            
-            document.getElementById('details-title').innerText = months[month] + "i részletek";
             const listDiv = document.getElementById('details-list');
             listDiv.innerHTML = "";
             
-            const filtered = expenses.filter(e => e.dMonth === month && e.dYear === year).reverse();
-
-            filtered.forEach(item => {
+            expenses.filter(e => e.dMonth === month && e.dYear === year).reverse().forEach(item => {
                 listDiv.innerHTML += `
                     <div class="detail-row">
                         <div>
-                            <small style="color:var(--gray)">${item.dYear}.${(item.dMonth+1).toString().padStart(2,'0')}.${item.dDay.toString().padStart(2,'0')}.</small><br>
-                            <strong>${item.memo}</strong>
+                            <small style="color:var(--gray)">${item.dYear}.${(item.dMonth+1)}.${item.dDay}.</small><br>
+                            <strong>${item.memo}</strong>: ${item.amt.toLocaleString('hu-HU')} Ft
                         </div>
-                        <div style="color:var(--red); font-weight:bold">-${item.amt.toLocaleString('hu-HU')} Ft</div>
+                        <button class="del-btn" onclick="deleteExpense(${item.id})">🗑</button>
                     </div>
                 `;
             });
