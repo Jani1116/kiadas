@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiadáskezelő Pro</title>
+    <style>
+        :root {
+            --bg: #000000; --card: #121212; --text: #ffffff;
+            --accent: #ff9f0a; --border: #2c2c2e; --secondary: #8e8e93;
+            --kaja: #30d158; --dohany: #ff453a; --egyeb: #007aff;
+        }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); -webkit-tap-highlight-color: transparent; }
+        .container { max-width: 500px; margin: auto; background: var(--card); padding: 20px; border-radius: 28px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+        
+        h1 { text-align: center; font-size: 24px; margin-bottom: 20px; }
+        
+        .stat-card { background: #1c1c1e; padding: 15px; border-radius: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .stat-row { margin: 10px 0; }
+        .stat-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+        .progress-bar { height: 12px; background: #333; border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.3s; }
+
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .add-btn { border: none; border-radius: 15px; padding: 15px 5px; color: white; font-weight: bold; font-size: 12px; cursor: pointer; text-align: center; }
+        .add-btn:active { transform: scale(0.95); }
+
+        .history { background: #1c1c1e; border-radius: 20px; padding: 15px; border: 1px solid var(--border); max-height: 300px; overflow-y: auto; }
+        .history-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2c2c2e; font-size: 14px; }
+        .history-item:last-child { border-bottom: none; }
+
+        #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #1c1c1e; padding: 25px; border-radius: 24px; width: 80%; max-width: 300px; border: 1px solid var(--border); }
+        input { width: 100%; padding: 15px; background: #000; border: 1px solid var(--border); color: white; border-radius: 12px; font-size: 20px; margin: 10px 0; box-sizing: border-box; text-align: center; }
+        .save-btn { background: var(--accent); border: none; color: black; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Kiadásaim</h1>
+    
+    <div class="stat-card">
+        <div id="total-spent" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 15px;">0 Ft</div>
+        
+        <div class="stat-row">
+            <div class="stat-label"><span>Kaja</span><span id="label-kaja">0 Ft</span></div>
+            <div class="progress-bar"><div id="bar-kaja" class="progress-fill" style="background: var(--kaja); width: 0%"></div></div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label"><span>Dohány</span><span id="label-dohany">0 Ft</span></div>
+            <div class="progress-bar"><div id="bar-dohany" class="progress-fill" style="background: var(--dohany); width: 0%"></div></div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-label"><span>Egyéb</span><span id="label-egyeb">0 Ft</span></div>
+            <div class="progress-bar"><div id="bar-egyeb" class="progress-fill" style="background: var(--egyeb); width: 0%"></div></div>
+        </div>
+    </div>
+
+    <div class="input-grid">
+        <button class="add-btn" style="background: var(--kaja)" onclick="openModal('Kaja')">+ KAJA</button>
+        <button class="add-btn" style="background: var(--dohany)" onclick="openModal('Dohány')">+ DOHÁNY</button>
+        <button class="add-btn" style="background: var(--egyeb)" onclick="openModal('Egyéb')">+ EGYÉB</button>
+    </div>
+
+    <div class="history" id="history-list">
+        <div style="color: var(--secondary); text-align: center; font-size: 12px;">Nincs még rögzített kiadás.</div>
+    </div>
+    
+    <button class="add-btn" style="background: #333; width: 100%; margin-top: 15px;" onclick="clearData()">Adatok törlése</button>
+</div>
+
+<div id="modal">
+    <div class="modal-content">
+        <h3 id="modal-title" style="margin:0; text-align:center"></h3>
+        <input type="number" id="amount-input" placeholder="Összeg (Ft)" inputmode="numeric">
+        <input type="text" id="note-input" placeholder="Megjegyzés (pl. Bolt)">
+        <button class="save-btn" onclick="addExpense()">Hozzáadás</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:var(--secondary); width:100%; margin-top:10px">Mégse</button>
+    </div>
+</div>
+
+<script>
+    let expenses = JSON.parse(localStorage.getItem('myExpenses')) || [];
+    let currentCategory = "";
+
+    function openModal(cat) {
+        currentCategory = cat;
+        document.getElementById('modal-title').innerText = cat + " hozzáadása";
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('amount-input').focus();
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+        document.getElementById('amount-input').value = "";
+        document.getElementById('note-input').value = "";
+    }
+
+    function addExpense() {
+        let amt = parseInt(document.getElementById('amount-input').value);
+        let note = document.getElementById('note-input').value || "";
+        if(!amt) return;
+
+        let item = {
+            id: Date.now(),
+            cat: currentCategory,
+            amt: amt,
+            note: note,
+            date: new Date().toLocaleDateString('hu-HU')
+        };
+
+        expenses.unshift(item);
+        localStorage.setItem('myExpenses', JSON.stringify(expenses));
+        updateUI();
+        closeModal();
+    }
+
+    function updateUI() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = "";
+        
+        let totals = { "Kaja": 0, "Dohány": 0, "Egyéb": 0 };
+        let grandTotal = 0;
+
+        expenses.forEach(item => {
+            totals[item.cat] += item.amt;
+            grandTotal += item.amt;
+            
+            list.innerHTML += `
+                <div class="history-item">
+                    <span><strong>${item.date}</strong> - ${item.cat} (${item.note})</span>
+                    <span style="color: var(--accent)">${item.amt.toLocaleString()} Ft</span>
+                </div>
+            `;
+        });
+
+        document.getElementById('total-spent').innerText = grandTotal.toLocaleString() + " Ft";
+        
+        for(let cat in totals) {
+            let pct = grandTotal > 0 ? (totals[cat] / grandTotal) * 100 : 0;
+            let slug = cat.toLowerCase().replace('á','a');
+            document.getElementById(`label-${slug}`).innerText = totals[cat].toLocaleString() + " Ft";
+            document.getElementById(`bar-${slug}`).style.width = pct + "%";
+        }
+
+        if(expenses.length === 0) {
+            list.innerHTML = '<div style="color: var(--secondary); text-align: center; font-size: 12px;">Nincs még rögzített kiadás.</div>';
+        }
+    }
+
+    function clearData() {
+        if(confirm("Biztosan törölni akarod az összes kiadást?")) {
+            expenses = [];
+            localStorage.removeItem('myExpenses');
+            updateUI();
+        }
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
