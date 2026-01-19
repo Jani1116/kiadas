@@ -21,19 +21,26 @@
         .accent-btn { background: var(--accent); border: none; }
         #admin-panel-btn { background: #5856d6; border: none; display: none; }
 
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--card); padding: 20px; border-radius: 28px; width: 90%; max-width: 380px; border: 1px solid #2c2c2e; box-sizing: border-box; }
+        /* MODAL JAVÍTÁS FEKVŐ MÓDHOZ */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; padding: 20px 0; }
+        .modal-content { background: var(--card); padding: 20px; border-radius: 28px; width: 90%; max-width: 380px; border: 1px solid #2c2c2e; margin: auto; position: relative; }
         
-        /* Naptár navigáció */
-        .nav-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #000; padding: 10px; border-radius: 14px; }
+        .nav-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #000; padding: 10px; border-radius: 14px; position: sticky; top: 0; z-index: 10; }
         .nav-btn { background: none; border: none; color: var(--accent); font-size: 24px; font-weight: bold; cursor: pointer; padding: 0 15px; }
 
-        table { width: 100%; border-collapse: separate; border-spacing: 6px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 4px; }
         th { color: var(--gray); font-size: 11px; padding-bottom: 5px; }
-        td { text-align: center; padding: 10px 5px; background: #2c2c2e; border-radius: 10px; height: 45px; font-weight: bold; font-size: 14px; position: relative; }
+        td { text-align: center; padding: 8px 2px; background: #2c2c2e; border-radius: 10px; height: 40px; font-weight: bold; font-size: 14px; position: relative; }
+        
+        /* Fekvő mód finomítás */
+        @media (orientation: landscape) {
+            td { height: 35px; padding: 5px 2px; }
+            .modal { align-items: flex-start; }
+        }
+
         .weekend-cell { color: var(--red); background: #221010; }
         .today-cell { border: 2px solid var(--accent) !important; }
-        .has-expense::after { content: '●'; display: block; font-size: 8px; color: var(--success); position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }
+        .has-expense::after { content: '●'; display: block; font-size: 8px; color: var(--success); position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); }
 
         .detail-row { background: #1c1c1e; padding: 15px; border-radius: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); text-align: left; }
         #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: none; align-items: center; justify-content: center; color: white; font-weight: bold; }
@@ -56,13 +63,10 @@
 <div id="app-content" class="container hidden">
     <div id="user-info"></div>
     <h1>Kiadások</h1>
-
     <input type="text" id="amount-input" placeholder="0 Ft" oninput="formatAmount(this)" inputmode="numeric">
-    
     <button class="main-btn accent-btn" onclick="openMemo()">➕ KIADÁS RÖGZÍTÉSE</button>
     <button class="main-btn" onclick="openCalendar()">📅 ÖSSZESÍTŐ NAPTÁR</button>
     <button id="admin-panel-btn" class="main-btn" onclick="openAdmin()">👤 ÚJ FELHASZNÁLÓ</button>
-    
     <button class="main-btn" style="background:none; color:var(--red); border:none; margin-top:20px" onclick="logout()">Kijelentkezés</button>
 </div>
 
@@ -80,15 +84,15 @@
         <button class="nav-btn" onclick="changeMonth(1)">❯</button>
     </div>
     <div id="calendar-container"></div>
-    <div style="margin-top:20px; background:#000; padding:15px; border-radius:15px">
+    <div style="margin-top:15px; background:#000; padding:12px; border-radius:15px">
         <small style="color:var(--gray)">HAVI SZUMMA</small>
-        <div id="monthly-total" style="font-size:22px; font-weight:bold; color:var(--success)">0 Ft</div>
+        <div id="monthly-total" style="font-size:20px; font-weight:bold; color:var(--success)">0 Ft</div>
     </div>
     <button class="main-btn" style="margin-top:15px" onclick="openDetails()">Részletek</button>
     <button class="main-btn" style="background:none; border:none" onclick="closeModal('calendar-modal')">Bezárás</button>
 </div></div>
 
-<div id="details-modal" class="modal"><div class="modal-content" style="max-height:80vh; overflow-y:auto">
+<div id="details-modal" class="modal"><div class="modal-content">
     <h3>Lista</h3>
     <div id="details-list"></div>
     <button class="main-btn" style="margin-top:15px" onclick="closeModal('details-modal')">Vissza</button>
@@ -167,30 +171,25 @@
         const year = d.getFullYear(), month = d.getMonth();
         const mNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
         document.getElementById('month-name').innerText = mNames[month] + " " + year;
-        
         let firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
         let dayCount = new Date(year, month + 1, 0).getDate();
-        
         let html = '<table><tr><th>H</th><th>K</th><th>Sz</th><th>Cs</th><th>P</th><th>Sz</th><th>V</th></tr><tr>';
         for (let i = 0; i < firstDay; i++) html += '<td></td>';
-        
         for (let day = 1; day <= dayCount; day++) {
             if ((day + firstDay - 1) % 7 === 0 && day !== 1) html += '</tr><tr>';
             const isToday = (day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear());
             const hasExp = expenses.some(e => e.dDay === day && e.dMonth === month && e.dYear === year);
             const isWeekend = ((day + firstDay - 1) % 7 >= 5);
-            
             html += `<td class="${isToday?'today-cell':''} ${hasExp?'has-expense':''} ${isWeekend?'weekend-cell':''}">${day}</td>`;
         }
         document.getElementById('calendar-container').innerHTML = html + '</tr></table>';
-        
         const total = expenses.filter(e => e.dMonth === month && e.dYear === year).reduce((s, i) => s + i.amt, 0);
         document.getElementById('monthly-total').innerText = total.toLocaleString('hu-HU') + " Ft";
     }
 
     function changeMonth(n) { d.setMonth(d.getMonth() + n); renderCalendar(); }
-    function openMemo() { if(!document.getElementById('amount-input').value) return; document.getElementById('memo-modal').style.display = 'flex'; }
-    function openCalendar() { document.getElementById('calendar-modal').style.display = 'flex'; renderCalendar(); }
+    function openMemo() { if(!document.getElementById('amount-input').value) return; document.getElementById('memo-modal').style.display = 'block'; }
+    function openCalendar() { document.getElementById('calendar-modal').style.display = 'block'; renderCalendar(); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function showLoading(s) { document.getElementById('loading-overlay').style.display = s ? 'flex' : 'none'; }
     function logout() { localStorage.removeItem('kiadas_session'); location.reload(); }
@@ -204,7 +203,7 @@
                 list.innerHTML += `<div class="detail-row"><div><small>${item.dDay}.</small><br><strong>${item.memo}</strong></div><div>${item.amt.toLocaleString('hu-HU')} Ft <button style="color:var(--red); background:none; border:none; margin-left:10px" onclick="deleteExp('${item.fbKey}')">🗑</button></div></div>`;
             });
         }
-        document.getElementById('details-modal').style.display = 'flex';
+        document.getElementById('details-modal').style.display = 'block';
     }
 
     async function deleteExp(k) { if(confirm("Törlöd?")) { showLoading(true); await fetch(`${DB_URL}expenses/${currentUser.name}/${k}.json`, {method:'DELETE'}); await loadData(); openDetails(); renderCalendar(); showLoading(false); } }
